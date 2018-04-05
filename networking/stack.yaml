@@ -1,0 +1,105 @@
+heat_template_version: 2015-04-30
+
+description: bla
+
+parameters:
+  number_worker_clients: 
+    type: string
+    default: 2
+  number_webserver_clients:
+    type: string
+    default: 2
+  public_network:
+    type: string
+    default: ext-net 
+
+resources:
+  worker_network:
+    type: OS::Neutron::Net
+    properties: 
+      name: worker_network
+
+  worker_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      name: worker_subnet
+      dns_nameservers:
+        - 8.8.8.8
+        - 8.8.4.4
+      network: {get_resource: worker_network}
+      ip_version: 4
+      cidr: 10.0.1.0/24
+      allocation_pools:
+      - {start: 10.0.1.2, end: 10.0.1.254}
+
+  project_router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info: {"network": { get_param: public_network }}
+
+  router_subnet_connect:
+    type: OS::Neutron::RouterInterface
+    depends_on: [ worker_subnet, worker_router, worker_network ]
+    properties:
+      router: { get_resource: worker_router }
+      subnet: { get_resource: worker_subnet }
+ # next network
+  webserver_network:
+    type: OS::Neutron::Net
+    properties: 
+      name: webserver_network
+
+  worker_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      name: webserver_subnet
+      dns_nameservers:
+        - 8.8.8.8
+        - 8.8.4.4
+      network: {get_resource: webserver_network}
+      ip_version: 4
+      cidr: 10.0.2.0/24
+      allocation_pools:
+      - {start: 10.0.2.2, end: 10.0.2.254}
+
+  project_router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info: {"network": { get_param: public_network }}
+
+  router_subnet_connect:
+    type: OS::Neutron::RouterInterface
+    depends_on: [ webserver_subnet, webserver_router, webserver_network ]
+    properties:
+      router: { get_resource: webserver_router }
+      subnet: { get_resource: webserver_subnet }
+ # 3 netzwerk
+  api_network:
+    type: OS::Neutron::Net
+    properties: 
+      name: api_network
+
+  api_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      name: api_subnet
+      dns_nameservers:
+        - 8.8.8.8
+        - 8.8.4.4
+      network: {get_resource: api_network}
+      ip_version: 4
+      cidr: 10.0.3.0/24
+      allocation_pools:
+      - {start: 10.0.3.2, end: 10.0.3.254}
+
+  project_router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info: {"network": { get_param: public_network }}
+
+  router_subnet_connect:
+    type: OS::Neutron::RouterInterface
+    depends_on: [ api_subnet, api_router, api_network ]
+    properties:
+      router: { get_resource: api_router }
+      subnet: { get_resource: api_subnet }
